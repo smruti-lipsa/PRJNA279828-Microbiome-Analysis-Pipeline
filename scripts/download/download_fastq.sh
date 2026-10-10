@@ -21,24 +21,35 @@ mkdir -p sra
 
 echo "[1/5] Prefetching ${RUN}..."
 
-prefetch \
-    "${RUN}" \
-    --output-directory sra \
+prefetch 
+    "${RUN}" 
+    --output-directory sra 
     --max-size u
 
 # ---------------------------------------------------------
-# 2. Locate SRA object
+# 2. Locate downloaded SRA object
 # ---------------------------------------------------------
 
-SRA_FILE="sra/${RUN}/${RUN}.sra"
+echo "[2/5] Locating SRA object..."
 
-if [[ ! -f "${SRA_FILE}" ]]; then
-    echo "ERROR: SRA file not found:"
-    echo "${SRA_FILE}"
+SRA_FILE=""
+
+while IFS= read -r -d '' FILE; do
+    SRA_FILE="${FILE}"
+    break
+done < <(
+    find "sra" -type f 
+        \( -name "${RUN}.sra" -o -name "${RUN}.sralite" \) 
+        -print0
+)
+
+if [[ -z "${SRA_FILE}" ]]; then
+    echo "ERROR: No .sra or .sralite file found for ${RUN}."
+    echo "Files downloaded under sra/:"
+    find sra -type f -print
     exit 1
 fi
 
-echo "[2/5] Locating SRA object..."
 echo "SRA input: ${SRA_FILE}"
 
 # ---------------------------------------------------------
@@ -55,10 +66,10 @@ vdb-validate "${SRA_FILE}"
 
 echo "[4/5] Converting ${RUN} to FASTQ..."
 
-fasterq-dump \
-    "${SRA_FILE}" \
-    --split-files \
-    --threads "${THREADS}" \
+fasterq-dump 
+    "${SRA_FILE}" 
+    --split-files 
+    --threads "${THREADS}" 
     --outdir .
 
 # ---------------------------------------------------------
@@ -67,6 +78,8 @@ fasterq-dump \
 
 if [[ ! -f "${RUN}_1.fastq" || ! -f "${RUN}_2.fastq" ]]; then
     echo "ERROR: Paired FASTQ files were not created for ${RUN}."
+    echo "Generated FASTQ files:"
+    find . -maxdepth 1 -type f -name "${RUN}*.fastq" -print
     exit 1
 fi
 
@@ -76,12 +89,12 @@ fi
 
 echo "[5/5] Compressing FASTQ..."
 
-pigz -p "${THREADS}" \
-    "${RUN}_1.fastq" \
+pigz -p "${THREADS}" 
+    "${RUN}_1.fastq" 
     "${RUN}_2.fastq"
 
 # ---------------------------------------------------------
-# Move files only when OUTPUT_DIR is different from "."
+# Move files when OUTPUT_DIR is different from "."
 # ---------------------------------------------------------
 
 if [[ "${OUTPUT_DIR}" != "." && "${OUTPUT_DIR}" != "./" ]]; then
@@ -94,7 +107,6 @@ fi
 # ---------------------------------------------------------
 
 if [[ "${OUTPUT_DIR}" == "." || "${OUTPUT_DIR}" == "./" ]]; then
-
     [[ -s "${RUN}_1.fastq.gz" ]] || {
         echo "ERROR: ${RUN}_1.fastq.gz was not created."
         exit 1
@@ -104,9 +116,7 @@ if [[ "${OUTPUT_DIR}" == "." || "${OUTPUT_DIR}" == "./" ]]; then
         echo "ERROR: ${RUN}_2.fastq.gz was not created."
         exit 1
     }
-
 else
-
     [[ -s "${OUTPUT_DIR}/${RUN}_1.fastq.gz" ]] || {
         echo "ERROR: ${OUTPUT_DIR}/${RUN}_1.fastq.gz was not created."
         exit 1
@@ -116,10 +126,8 @@ else
         echo "ERROR: ${OUTPUT_DIR}/${RUN}_2.fastq.gz was not created."
         exit 1
     }
-
 fi
 
 echo "========================================"
 echo "[SUCCESS] ${RUN} downloaded successfully."
 echo "========================================"
-

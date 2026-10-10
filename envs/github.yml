@@ -5,8 +5,6 @@ channels:
   - bioconda
 
 dependencies:
+  - python=3.11
   - nextflow
-  - fastqc
-  - multiqc
-  - qiime2-amplicon=2025.10
   - entrez-direct

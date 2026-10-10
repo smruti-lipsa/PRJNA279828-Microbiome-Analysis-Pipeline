@@ -47,4 +47,4 @@ Publication-ready Figures
 
 ## Author
 
-Jayanth Kumar
+Smruti Lipsa Nanda
